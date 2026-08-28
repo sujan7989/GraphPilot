@@ -21,7 +21,10 @@ class GraphAnalystAgent:
         question = request.question.lower()
         
         # Intent detection - order matters for specificity
-        if "incident" in question:
+        # Check impact analysis first as it's more specific than general service queries
+        if ("affect" in question or "fail" in question) and ("if" in question or "when" in question):
+            return self._handle_impact_analysis(question)
+        elif "incident" in question:
             return self._handle_incident_query(question)
         elif "database" in question:
             return self._handle_database_query(question)
@@ -29,8 +32,6 @@ class GraphAnalystAgent:
             return self._handle_ownership_query(question)
         elif "service" in question:
             return self._handle_service_query(question)
-        elif ("affect" in question or "fail" in question) and ("if" in question or "when" in question):
-            return self._handle_impact_analysis(question)
         else:
             return self._handle_general_query(question)
     
