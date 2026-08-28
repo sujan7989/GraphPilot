@@ -4,9 +4,11 @@ from app.services.impact_service import ImpactService
 from app.repositories.graph_repository import GraphRepository
 from app.models.graph import ImpactAnalysisRequest
 from typing import List, Dict, Any
+import logging
 
 router = APIRouter(prefix="/graph", tags=["graph"])
 graph_service = GraphService()
+logger = logging.getLogger(__name__)
 impact_service = ImpactService()
 
 
