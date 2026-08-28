@@ -1,16 +1,26 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { incidentsApi } from '../api/client';
 import { Incident } from '../types/graph';
-import { Loader2, AlertTriangle, AlertCircle, Clock, CheckCircle2 } from 'lucide-react';
+import { Loader2, AlertTriangle, AlertCircle, Clock, CheckCircle2, Filter, X } from 'lucide-react';
 
 const Incidents = () => {
+  const [severityFilter, setSeverityFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+
   const { data: incidents, isLoading, error } = useQuery<Incident[]>({
     queryKey: ['incidents'],
     queryFn: incidentsApi.getAll,
   });
 
-  const activeIncidents = incidents?.filter(i => i.status !== 'resolved') || [];
-  const resolvedIncidents = incidents?.filter(i => i.status === 'resolved') || [];
+  const filteredIncidents = incidents?.filter(incident => {
+    if (severityFilter !== 'all' && incident.severity !== severityFilter) return false;
+    if (statusFilter !== 'all' && incident.status !== statusFilter) return false;
+    return true;
+  }) || [];
+
+  const activeIncidents = filteredIncidents.filter(i => i.status !== 'resolved');
+  const resolvedIncidents = filteredIncidents.filter(i => i.status === 'resolved');
 
   const getSeverityBadge = (severity: string) => {
     switch (severity.toLowerCase()) {
@@ -84,6 +94,52 @@ const Incidents = () => {
             <span className="text-sm text-[#525252]">{resolvedIncidents.length} resolved</span>
           </div>
         </div>
+      </div>
+
+      {/* Filters */}
+      <div className="card">
+        <div className="flex items-center space-x-2 mb-4">
+          <Filter className="h-4 w-4 text-[#525252]" />
+          f<lterecI"text-sm font-medium text-[#171717]">Filters</h3>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-medium text-[#525252] mb-2">Severity</label>
+            <select
+              className="input w-full"
+              value={severityFilter}
+              onChange={(e) => setSeverityFilter(e.target.value)}
+            >
+              <option value="all">All Severities</option>
+              <option value="critical">Critical</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-[#525252] mb-2">Status</label>
+            <select
+              className="input w-full"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="all">All Statuses</option>
+              <option value="open">Open</option>
+              <option value="investigating">Investigating</option>
+              <option value="resolved">Resolved</option>
+            </select>
+          </div>
+        </div>
+        {(severityFilter !== 'all' || statusFilter !== 'all') && (
+          <button
+            onClick={() => { setSeverityFilter('all'); setStatusFilter('all'); }}
+            className="mt-4 text-xs text-[#0ea5e9] hover:text-[#0284c7] flex items-center space-x-1"
+          >
+            <X className="h-3 w-3" />
+            <span>Clear filters</span>
+          </button>
+        )}
       </div>
 
       {isLoading ? (
@@ -197,8 +253,8 @@ const Incidents = () => {
         <div className="card">
           <div className="empty-state">
             <CheckCircle2 className="empty-state-icon text-[#22c55e]" />
-            <h3 className="empty-state-title">No incidents recorded</h3>
-            <p className="empty-state-description">Your system is running smoothly with no incidents</p>
+            <h3 className="empty-state-title">No incidents match your filters</h3>
+            <p className="empty-state-description">Try adjusting your filters or clear them to see all incidents</p>
           </div>
         </div>
       )}
