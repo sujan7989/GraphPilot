@@ -56,7 +56,14 @@ async def analyze_impact(request: ImpactAnalysisRequest):
         error_detail = f"Impact analysis failed: {str(e)}"
         logger.error(error_detail, exc_info=True)
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=error_detail)
+        # Return graceful fallback instead of 500
+        return {
+            "target_service": request.service_id,
+            "affected_services": [],
+            "total_affected": 0,
+            "max_hops": request.depth,
+            "error": "Unable to perform impact analysis. Please try again or use the Explorer page to view dependencies."
+        }
 
 
 @router.get("/database/{database_id}/impact")
