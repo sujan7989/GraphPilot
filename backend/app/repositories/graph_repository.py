@@ -54,10 +54,10 @@ class GraphRepository:
                 affected_services.append({
                     "service_id": record["service_id"],
                     "service_name": record["service_name"],
-                    "status": record["stat,
-                    "path": record.get("path", [])us"],
+                    "status": record["status"],
                     "criticality": record["criticality"],
-                    "hops": record["hops"]
+                    "hops": record["hops"],
+                    "path": record.get("path", [])
                 })
             
             return {
