@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import ReactFlow, { Background, Controls, MiniMap, Node, Edge, useNodesState, useEdgesState, addEdge, Connection } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -32,35 +32,156 @@ const Explorer = () => {
     enabled: !!selectedService && showGraph,
   });
 
-  useEffect(() => {
-    if (graphData) {
-      const flowNodes: Node[] = graphData.nodes.map((node: any) => ({
-        id: node.id,
-        data: { label: node.label },
-        position: { x: Math.random() * 400, y: Math.random() * 400 },
-        style: {
-          background: node.criticality === 'high' ? '#fee2e2' : '#e0f2fe',
-          border: '2px solid',
-          borderColor: node.criticality === 'high' ? '#ef4444' : '#0ea5e9',
-          borderRadius: '8px',
-          padding: '8px',
-          width: 150,
+  const selectedServiceData = services?.find((s) => s.id === selectedService);
+
+  // Calculate circular layout for better node distribution
+  const calculateLayout = useMemo(() => {
+    if (!graphData || !selectedServiceData) return { nodes: [], edges: [] };
+
+    const centerX = 400;
+    const centerY = 300;
+    const innerRadius = 120;
+    const outerRadius = 220;
+    const nodeWidth = 180;
+    const nodeHeight = 60;
+
+    // Separate nodes by type
+    const selectedNode = graphData.nodes.find((n: any) => n.id === selectedService);
+    const dependencies = graphData.nodes.filter((n: any) => 
+      n.id !== selectedService && 
+      graphData.relationships.some((r: any) => r.source === selectedService && r.target === n.id)
+    );
+    const dependents = graphData.nodes.filter((n: any) => 
+      n.id !== selectedService && 
+      graphData.relationships.some((r: any) => r.target === selectedService && r.source === n.id)
+    );
+
+    // Position selected node in center
+    const flowNodes: Node[] = [];
+    if (selectedNode) {
+      flowNodes.push({
+        id: selectedNode.id,
+        data: { 
+          label: (
+            <div className="text-center">
+              <div className="font-semibold text-sm text-[#171717]">{selectedNode.name}</div>
+              <div className="text-xs text-[#525252]">{selectedNode.id}</div>
+            </div>
+          )
         },
-      }));
-      const flowEdges: Edge[] = graphData.relationships.map((rel: any, index: number) => ({
+        position: { x: centerX - nodeWidth / 2, y: centerY - nodeHeight / 2 },
+        style: {
+          background: selectedNode.criticality === 'high' ? '#fee2e2' : '#e0f2fe',
+          border: '3px solid',
+          borderColor: selectedNode.criticality === 'high' ? '#ef4444' : '#0ea5e9',
+          borderRadius: '12px',
+          padding: '12px',
+          width: nodeWidth,
+          height: nodeHeight,
+          fontSize: '12px',
+          fontWeight: 500,
+        },
+      });
+    }
+
+    // Position dependencies in inner circle
+    dependencies.forEach((node: any, index: number) => {
+      const angle = (index / dependencies.length) * 2 * Math.PI;
+      const x = centerX + innerRadius * Math.cos(angle) - nodeWidth / 2;
+      const y = centerY + innerRadius * Math.sin(angle) - nodeHeight / 2;
+      
+      flowNodes.push({
+        id: node.id,
+        data: { 
+          label: (
+            <div className="text-center">
+              <div className="font-medium text-sm text-[#171717]">{node.name}</div>
+              <div className="text-xs text-[#525252]">{node.id}</div>
+            </div>
+          )
+        },
+        position: { x, y },
+        style: {
+          background: node.criticality === 'high' ? '#fef3c7' : '#f0fdf4',
+          border: '2px solid',
+          borderColor: node.criticality === 'high' ? '#f59e0b' : '#22c55e',
+          borderRadius: '10px',
+          padding: '10px',
+          width: nodeWidth,
+          height: nodeHeight,
+          fontSize: '11px',
+        },
+      });
+    });
+
+    // Position dependents in outer circle
+    dependents.forEach((node: any, index: number) => {
+      const angle = (index / dependents.length) * 2 * Math.PI;
+      const x = centerX + outerRadius * Math.cos(angle) - nodeWidth / 2;
+      const y = centerY + outerRadius * Math.sin(angle) - nodeHeight / 2;
+      
+      flowNodes.push({
+        id: node.id,
+        data: { 
+          label: (
+            <div className="text-center">
+              <div className="font-medium text-sm text-[#171717]">{node.name}</div>
+              <div className="text-xs text-[#525252]">{node.id}</div>
+            </div>
+          )
+        },
+        position: { x, y },
+        style: {
+          background: node.criticality === 'high' ? '#fef3c7' : '#f0fdf4',
+          border: '2px solid',
+          borderColor: node.criticality === 'high' ? '#f59e0b' : '#22c55e',
+          borderRadius: '10px',
+          padding: '10px',
+          width: nodeWidth,
+          height: nodeHeight,
+          fontSize: '11px',
+        },
+      });
+    });
+
+    // Create edges with better label positioning
+    const flowEdges: Edge[] = graphData.relationships.map((rel: any, index: number) => {
+      const isDependency = rel.source === selectedService;
+      return {
         id: rel.id || `edge-${index}`,
         source: rel.source,
         target: rel.target,
         label: rel.type,
         animated: true,
-        style: { stroke: '#0ea5e9', strokeWidth: 2 },
-        labelStyle: { fontSize: 10, fontWeight: 600 },
-        labelBgStyle: { fill: '#ffffff', color: '#171717' },
-      }));
-      setNodes(flowNodes);
-      setEdges(flowEdges);
+        style: { 
+          stroke: isDependency ? '#0ea5e9' : '#22c55e', 
+          strokeWidth: 2.5 
+        },
+        labelStyle: { 
+          fontSize: 11, 
+          fontWeight: 600,
+          color: '#171717'
+        },
+        labelBgStyle: { 
+          fill: '#ffffff', 
+          color: '#171717',
+          padding: '4px 8px',
+          borderRadius: '4px'
+        },
+        labelShowBg: true,
+        type: 'smoothstep',
+      };
+    });
+
+    return { nodes: flowNodes, edges: flowEdges };
+  }, [graphData, selectedServiceData, selectedService]);
+
+  useEffect(() => {
+    if (calculateLayout.nodes.length > 0) {
+      setNodes(calculateLayout.nodes);
+      setEdges(calculateLayout.edges);
     }
-  }, [graphData, setNodes, setEdges]);
+  }, [calculateLayout, setNodes, setEdges]);
 
   const { data: dependents, isLoading: dependentsLoading } = useQuery<Service[]>({
     queryKey: ['dependents', selectedService],
@@ -72,8 +193,6 @@ const Explorer = () => {
     s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     s.id.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
-
-  const selectedServiceData = services?.find((s) => s.id === selectedService);
 
   return (
     <div className="space-y-6">
@@ -274,29 +393,33 @@ const Explorer = () => {
                   </div>
                 </>
               ) : (
-                <div className="card h-[600px]">
+                <div className="card h-[700px]">
                   <div className="section-header">
                     <h2 className="section-title flex items-center space-x-2">
                       <Network className="h-5 w-5" />
                       <span>Dependency Graph</span>
                     </h2>
-                    <div className="flex items-center space-x-2 text-xs text-[#525252]">
+                    <div className="flex items-center space-x-3 text-xs text-[#525252]">
                       <div className="flex items-center space-x-1">
                         <div className="w-3 h-3 rounded bg-[#fee2e2] border-2 border-[#ef4444]" />
                         <span>High Criticality</span>
                       </div>
                       <div className="flex items-center space-x-1">
                         <div className="w-3 h-3 rounded bg-[#e0f2fe] border-2 border-[#0ea5e9]" />
-                        <span>Standard</span>
+                        <span>Selected Service</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <div className="w-3 h-3 rounded bg-[#f0fdf4] border-2 border-[#22c55e]" />
+                        <span>Dependencies/Dependents</span>
                       </div>
                     </div>
                   </div>
                   {graphLoading ? (
-                    <div className="flex items-center justify-center h-[500px]">
+                    <div className="flex items-center justify-center h-[600px]">
                       <Loader2 className="h-8 w-8 loading-spinner" />
                     </div>
                   ) : (
-                    <div className="h-[500px]">
+                    <div className="h-[600px]">
                       <ReactFlow
                         nodes={nodes}
                         edges={edges}
@@ -304,12 +427,19 @@ const Explorer = () => {
                         onEdgesChange={onEdgesChange}
                         onConnect={onConnect}
                         fitView
+                        minZoom={0.3}
+                        maxZoom={2}
+                        defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
                       >
-                        <Background color="#e5e5e5" gap={16} />
-                        <Controls className="bg-white border border-[#e5e5e5]" />
+                        <Background color="#e5e5e5" gap={20} />
+                        <Controls className="bg-white border border-[#e5e5e5] shadow-lg" />
                         <MiniMap 
-                          className="bg-white border border-[#e5e5e5]"
-                          nodeColor={() => '#0ea5e9'}
+                          className="bg-white border border-[#e5e5e5] shadow-lg"
+                          nodeColor={(node) => {
+                            if (node.id === selectedService) return '#0ea5e9';
+                            return '#22c55e';
+                          }}
+                          maskColor="rgba(0, 0, 0, 0.1)"
                         />
                       </ReactFlow>
                     </div>
