@@ -22,7 +22,7 @@ class GraphAnalystAgent:
         
         # Intent detection - order matters for specificity
         # Check impact analysis first as it's more specific than general service queries
-        if ("affect" in question or "fail" in question) and ("if" in question or "when" in question):
+        if ("affect" in question or "affected" in question or "fail" in question) and ("if" in question or "when" in question):
             return self._handle_impact_analysis(question)
         elif "incident" in question:
             return self._handle_incident_query(question)
