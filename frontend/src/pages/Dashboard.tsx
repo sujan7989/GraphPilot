@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { graphApi, incidentsApi, servicesApi } from '../api/client';
 import { GraphStats, Service, Incident } from '../types/graph';
-import { Loader2, AlertCircle, Activity, Network, Database, AlertTriangle, TrendingUp, CheckCircle2 } from 'lucide-react';
+import { Loader2, AlertCircle, Activity, Network, Database, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
 const Dashboard = () => {
   const { data: stats, isLoading: statsLoading, error: statsError } = useQuery<GraphStats>({
@@ -78,32 +78,24 @@ const Dashboard = () => {
           value={stats?.services || 0}
           icon={<Network className="h-5 w-5" />}
           loading={statsLoading}
-          trend="+2"
-          trendUp={true}
         />
         <KPICard
           title="Teams"
           value={stats?.teams || 0}
           icon={<Activity className="h-5 w-5" />}
           loading={statsLoading}
-          trend="0"
-          trendUp={true}
         />
         <KPICard
           title="Active Incidents"
           value={activeIncidents.length}
           icon={<AlertTriangle className="h-5 w-5" />}
           loading={incidentsLoading}
-          trend={activeIncidents.length > 0 ? "+1" : "0"}
-          trendUp={false}
         />
         <KPICard
           title="Databases"
           value={stats?.databases || 0}
           icon={<Database className="h-5 w-5" />}
           loading={statsLoading}
-          trend="0"
-          trendUp={true}
         />
       </div>
 
