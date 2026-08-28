@@ -251,11 +251,9 @@ interface KPICardProps {
   value: number;
   icon: React.ReactNode;
   loading: boolean;
-  trend: string;
-  trendUp: boolean;
 }
 
-const KPICard = ({ title, value, icon, loading, trend, trendUp }: KPICardProps) => {
+const KPICard = ({ title, value, icon, loading }: KPICardProps) => {
   return (
     <div className="kpi-card">
       <div className="flex items-start justify-between">
@@ -270,17 +268,6 @@ const KPICard = ({ title, value, icon, loading, trend, trendUp }: KPICardProps) 
         <div className="bg-[#e0f2fe] p-3 rounded-lg">
           {icon}
         </div>
-      </div>
-      <div className="flex items-center space-x-2 mt-4 pt-4 border-t border-[#e5e5e5]">
-        {trend !== "0" && (
-          <>
-            <TrendingUp className={`h-4 w-4 ${trendUp ? 'text-[#22c55e]' : 'text-[#ef4444]'}`} />
-            <span className={`text-xs font-medium ${trendUp ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
-              {trend}
-            </span>
-          </>
-        )}
-        <span className="text-xs text-[#a3a3a3]">from last period</span>
       </div>
     </div>
   );
