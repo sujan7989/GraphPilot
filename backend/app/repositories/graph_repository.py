@@ -31,6 +31,7 @@ class GraphRepository:
         
         # Fixed query: find services that depend on the target (upstream dependencies)
         # If target fails, services that depend on it are affected
+        # Also return the actual relationship path for visualization
         query = """
         MATCH (target:Service {id: $service_id})
         MATCH (affected:Service)
@@ -41,7 +42,8 @@ class GraphRepository:
             affected.name AS service_name,
             affected.status AS status,
             affected.criticality AS criticality,
-            hops
+            hops,
+            [(affected)-[:DEPENDS_ON*1..hops]->(target) | [startNode(r).name, type(r), endNode(r).name]][0] AS path
         ORDER BY hops, service_name
         """
         
@@ -52,7 +54,8 @@ class GraphRepository:
                 affected_services.append({
                     "service_id": record["service_id"],
                     "service_name": record["service_name"],
-                    "status": record["status"],
+                    "status": record["stat,
+                    "path": record.get("path", [])us"],
                     "criticality": record["criticality"],
                     "hops": record["hops"]
                 })
