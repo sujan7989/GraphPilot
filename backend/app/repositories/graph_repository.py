@@ -29,17 +29,20 @@ class GraphRepository:
             if not check_result.single():
                 raise ValueError(f"Service with id '{service_id}' not found")
         
+        # Fixed query: find services that depend on the target (upstream dependencies)
+        # If target fails, services that depend on it are affected
         query = """
         MATCH (target:Service {id: $service_id})
         MATCH (affected:Service)
         WHERE (affected)-[:DEPENDS_ON*1..$depth]->(target)
+        WITH affected, target, min(length((affected)-[:DEPENDS_ON*]->(target))) AS hops
         RETURN DISTINCT 
             affected.id AS service_id,
             affected.name AS service_name,
             affected.status AS status,
             affected.criticality AS criticality,
-            1 AS hops
-        ORDER BY service_name
+            hops
+        ORDER BY hops, service_name
         """
         
         with self.driver.session() as session:
