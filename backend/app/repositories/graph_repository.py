@@ -33,15 +33,14 @@ class GraphRepository:
         # If target fails, services that depend on it are affected
         query = """
         MATCH (target:Service {id: $service_id})
-        MATCH (affected:Service)
-        WHERE (affected)-[:DEPENDS_ON*1..$depth]->(target)
+        MATCH (affected:Service)-[r:DEPENDS_ON]->(target)
         RETURN DISTINCT 
             affected.id AS service_id,
             affected.name AS service_name,
             affected.status AS status,
             affected.criticality AS criticality,
-            length(shortestPath((affected)-[:DEPENDS_ON*]->(target))) AS hops
-        ORDER BY hops, service_name
+            1 AS hops
+        ORDER BY service_name
         """
         
         with self.driver.session() as session:
