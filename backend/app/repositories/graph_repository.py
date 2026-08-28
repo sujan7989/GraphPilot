@@ -21,6 +21,14 @@ class GraphRepository:
     
     def get_impact_analysis(self, service_id: str, depth: int = 4) -> Dict[str, Any]:
         depth = self._validate_depth(depth)
+        
+        # First check if the service exists
+        check_query = "MATCH (s:Service {id: $service_id}) RETURN s.id AS id LIMIT 1"
+        with self.driver.session() as session:
+            check_result = session.run(check_query, {"service_id": service_id})
+            if not check_result.single():
+                raise ValueError(f"Service with id '{service_id}' not found")
+        
         query = """
         MATCH (target:Service {id: $service_id})
         MATCH (affected:Service)

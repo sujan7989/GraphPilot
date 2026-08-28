@@ -53,8 +53,10 @@ async def analyze_impact(request: ImpactAnalysisRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         import traceback
+        error_detail = f"Impact analysis failed: {str(e)}"
+        logger.error(error_detail, exc_info=True)
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=error_detail)
 
 
 @router.get("/database/{database_id}/impact")
