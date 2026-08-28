@@ -2,9 +2,8 @@ services:
   - type: web
     name: graphpilot-backend
     runtime: python
+    plan: free
+    pythonVersion: 3.11
     rootDir: backend
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.9
