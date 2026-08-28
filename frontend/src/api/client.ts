@@ -1,5 +1,7 @@
 import type { Service, Incident, GraphStats, ImpactAnalysisRequest, ImpactAnalysisResult, AIAnalysisRequest, AIAnalysisResult } from '../types/graph';
 
+// In production, VITE_API_URL should be set to https://graphpilot.onrender.com/api
+// In local development, it defaults to /api which uses Vite proxy
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 export const api = {
