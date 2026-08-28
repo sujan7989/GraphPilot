@@ -22,9 +22,9 @@ class GraphRepository:
     def get_impact_analysis(self, service_id: str, depth: int = 4) -> Dict[str, Any]:
         depth = self._validate_depth(depth)
         query = """
-        MATCH (target:Service {{id: $service_id}})
+        MATCH (target:Service {id: $service_id})
         MATCH (affected:Service)
-        WHERE (affected)-[:DEPENDS_ON*1..{depth}]->(target)
+        WHERE (affected)-[:DEPENDS_ON*1..$depth]->(target)
         RETURN DISTINCT 
             affected.id AS service_id,
             affected.name AS service_name,
@@ -32,10 +32,10 @@ class GraphRepository:
             affected.criticality AS criticality,
             1 AS hops
         ORDER BY service_name
-        """.format(depth=depth)
+        """
         
         with self.driver.session() as session:
-            result = session.run(query, {"service_id": service_id})
+            result = session.run(query, {"service_id": service_id, "depth": depth})
             affected_services = []
             for record in result:
                 affected_services.append({
@@ -56,32 +56,33 @@ class GraphRepository:
     def get_database_impact(self, database_id: str, depth: int = 4) -> List[Dict[str, Any]]:
         depth = self._validate_depth(depth)
         query = """
-        MATCH (db:Database {{id: $database_id}})
-        MATCH (service:Service)-[:USES|DEPENDS_ON*1..{depth}]->(db)
+        MATCH (db:Database {id: $database_id})
+        MATCH (service:Service)-[:USES|DEPENDS_ON*1..$depth]->(db)
         RETURN DISTINCT 
             service.id AS id,
             service.name AS name,
             service.status AS status,
             service.criticality AS criticality
         ORDER BY service.name
-        """.format(depth=depth)
+        """
         
         with self.driver.session() as session:
-            result = session.run(query, {"database_id": database_id})
+            result = session.run(query, {"database_id": database_id, "depth": depth})
             return [dict(record) for record in result]
     
     def get_node_with_connections(self, node_id: str, node_type: str = "Service") -> Dict[str, Any]:
         node_type = self._validate_node_type(node_type)
         query = """
-        MATCH (n:{node_type} {{id: $node_id}})
+        MATCH (n {id: $node_id})
+        WHERE $node_type IN labels(n)
         OPTIONAL MATCH (n)-[r]->(connected)
         OPTIONAL MATCH (n)<-[r2]-(connected2)
-        RETURN n, collect(DISTINCT {{type: type(r), target: connected.id, target_label: labels(connected)[0]}}) + 
-               collect(DISTINCT {{type: type(r2), source: connected2.id, source_label: labels(connected2)[0]}}) AS connections
-        """.format(node_type=node_type)
+        RETURN n, collect(DISTINCT {type: type(r), target: connected.id, target_label: labels(connected)[0]}) + 
+               collect(DISTINCT {type: type(r2), source: connected2.id, source_label: labels(connected2)[0]}) AS connections
+        """
         
         with self.driver.session() as session:
-            result = session.run(query, {"node_id": node_id})
+            result = session.run(query, {"node_id": node_id, "node_type": node_type})
             record = result.single()
             if record:
                 node_dict = dict(record["n"])

@@ -13,6 +13,41 @@ GraphPilot is an AI-powered web application that helps engineering teams underst
 
 ## 🏗️ Architecture
 
+### Why a Graph Database?
+
+GraphPilot uses CognoDB (Neo4j-compatible) because engineering dependencies are fundamentally **graph-shaped** problems that are difficult and inefficient to model in relational databases.
+
+**Key Graph-Specific Benefits:**
+
+1. **Multi-Hop Dependency Traversal**: Understanding cascade failures requires traversing dependency chains of arbitrary depth. In a relational database, this requires recursive CTEs or multiple self-joins. In CognoDB, a single Cypher query with `[:DEPENDS_ON*1..N]` efficiently finds all affected services across any number of hops.
+
+2. **Bidirectional Relationship Queries**: Services have both upstream dependencies (what they depend on) and downstream dependents (what depends on them). Graph databases naturally handle bidirectional traversals without complex joins or duplicate tables.
+
+3. **Incident Propagation Analysis**: When an incident affects a service, understanding the full impact requires tracing both direct and indirect dependencies through the graph. This is expressed naturally with graph patterns like `(incident)-[:AFFECTS]->(service)-[:DEPENDS_ON*]->(affected)`.
+
+4. **Connected Engineering Entities**: Teams own services, developers belong to teams, services expose APIs, services use databases, deployments trigger services. These interconnected relationships form a rich graph that would require many join tables in a relational schema but are first-class citizens in a graph database.
+
+5. **Flexible Schema Evolution**: As the engineering system grows (adding new relationship types like `MONITORS`, `DEPLOYS_TO`, `CONSUMES_EVENTS`), graph databases accommodate schema changes without migrations. New relationship types can be added without altering existing node structures.
+
+**Example: Impact Analysis Query**
+
+The impact analysis feature demonstrates why a graph database is essential. To find all services affected if "Payment Service" fails at depth 4:
+
+```cypher
+MATCH (target:Service {id: 'svc-payment'})
+MATCH (affected:Service)
+WHERE (affected)-[:DEPENDS_ON*1..4]->(target)
+RETURN affected.name, affected.criticality
+```
+
+In a relational database, this would require:
+- A recursive CTE with 4 levels
+- Or 4 separate self-joins
+- Complex UNION queries
+- Performance degradation with increasing depth
+
+In CognoDB, this is a single, efficient query that scales naturally with depth.
+
 ### Technology Stack
 
 **Backend:**
@@ -62,6 +97,90 @@ GraphPilot is an AI-powered web application that helps engineering teams underst
 | AFFECTS | Incident → Service | Incident affects a service |
 | DEPLOYED_TO | Deployment → Environment | Deployment to environment |
 | TRIGGERED | Deployment → Service | Deployment triggered service |
+
+#### Data Model Diagram
+
+```
+                    ┌─────────────┐
+                    │    Team     │
+                    │             │
+                    │ - id        │
+                    │ - name      │
+                    │ - desc      │
+                    └──────┬──────┘
+                           │
+         ┌─────────────────┼─────────────────┐
+         │ OWNS                            │
+         │                                 │
+    ┌────▼────┐                      ┌────▼────┐
+    │Developer │                      │ Service │
+    │          │                      │         │
+    │ - id     │                      │ - id    │
+    │ - name   │                      │ - name  │
+    │ - role   │                      │ - desc  │
+    └────┬────┘                      │ - status│
+         │ MEMBER_OF                  │ - crit  │
+         │                           └────┬────┘
+         │                    ┌───────────┼───────────┐
+         │                    │ DEPENDS_ON           │
+         │                    │                       │
+         │              ┌─────▼─────┐         ┌─────▼─────┐
+         │              │  Service  │         │  Service  │
+         │              │           │         │           │
+         │              └─────┬─────┘         └─────┬─────┘
+         │                    │                     │
+         │                    │ EXPOSES             │ USES
+         │                    │                     │
+         │              ┌─────▼─────┐         ┌─────▼─────┐
+         │              │    API    │         │ Database  │
+         │              │           │         │           │
+         │              │ - id      │         │ - id      │
+         │              │ - name    │         │ - name    │
+         │              │ - method  │         │ - engine  │
+         │              │ - endpoint│         │ - env     │
+         │              └───────────┘         └─────┬─────┘
+         │                                         │
+         │                    ┌────────────────────┘
+         │                    │
+         │              ┌─────▼─────┐
+         │              │Deployment │
+         │              │           │
+         │              │ - id      │
+         │              │ - version │
+         │              │ - date    │
+         │              │ - status  │
+         │              └─────┬─────┘
+         │                    │
+         │                    │ DEPLOYED_TO
+         │                    │
+         │              ┌─────▼─────┐
+         │              │Environment│
+         │              │           │
+         │              │ - id      │
+         │              │ - name    │
+         │              └───────────┘
+         │
+         │
+    ┌────▼──────────────────────────────────────────────────────┐
+    │                      Incident                             │
+    │                                                           │
+    │  - id                                                    │
+    │  - title                                                 │
+    │  - severity (critical/high/medium/low)                   │
+    │  - status (investigating/resolved/open)                  │
+    │  - created_at                                            │
+    │  - description                                          │
+    └────┬────────────────────────────────────────────────────┘
+         │
+         │ AFFECTS
+         │
+         ▼
+    ┌─────────┐
+    │ Service │
+    └─────────┘
+```
+
+For more detailed diagrams and examples, see [docs/GRAPH_DIAGRAM.md](docs/GRAPH_DIAGRAM.md).
 
 ### Project Structure
 
@@ -243,6 +362,28 @@ MATCH (i:Incident {id: $incident_id})-[:AFFECTS]->(s:Service)
 OPTIONAL MATCH (s)-[:DEPENDS_ON*1..3]->(affected:Service)
 RETURN s, affected
 ```
+
+## 📸 Screenshots
+
+### Dashboard
+![Dashboard](screenshots/dashboard.png)
+The dashboard provides an overview of system health, key metrics, recent incidents, and critical services.
+
+### Graph Explorer
+![Graph Explorer](screenshots/explorer.png)
+Interactive graph visualization showing service dependencies with React Flow, including dependency/dependent lists and graph controls.
+
+### Impact Analysis
+![Impact Analysis](screenshots/impact.png)
+Multi-hop impact analysis showing affected services when a service fails, with hop-based color coding.
+
+### Incidents
+![Incidents](screenshots/incidents.png)
+Incident tracking with severity indicators, status badges, and affected service information.
+
+### AI Assistant
+![AI Assistant](screenshots/assistant.png)
+Natural language interface for asking questions about the engineering graph with suggested questions.
 
 ## 🎯 Usage
 
