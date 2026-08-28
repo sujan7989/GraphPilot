@@ -31,19 +31,19 @@ class GraphRepository:
         
         # Fixed query: find services that depend on the target (upstream dependencies)
         # If target fails, services that depend on it are affected
-        # Also return the actual relationship path for visualization
+        # Reversed direction based on seed data structure
         query = """
         MATCH (target:Service {id: $service_id})
         MATCH (affected:Service)
-        WHERE (affected)-[:DEPENDS_ON*1..$depth]->(target)
-        WITH affected, target, min(length((affected)-[:DEPENDS_ON*]->(target))) AS hops
+        WHERE (target)-[:DEPENDS_ON*1..$depth]->(affected)
+        WITH affected, target, min(length((target)-[:DEPENDS_ON*]->(affected))) AS hops
         RETURN DISTINCT 
             affected.id AS service_id,
             affected.name AS service_name,
             affected.status AS status,
             affected.criticality AS criticality,
             hops,
-            [(affected)-[:DEPENDS_ON*1..hops]->(target) | [startNode(r).name, type(r), endNode(r).name]][0] AS path
+            [(target)-[:DEPENDS_ON*1..hops]->(affected) | [startNode(r).name, type(r), endNode(r).name]][0] AS path
         ORDER BY hops, service_name
         """
         
