@@ -54,10 +54,8 @@ async def analyze_impact(request: ImpactAnalysisRequest):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        import traceback
         error_detail = f"Impact analysis failed: {str(e)}"
         logger.error(error_detail, exc_info=True)
-        traceback.print_exc()
         # Return graceful fallback instead of 500
         return {
             "target_service": request.service_id,
