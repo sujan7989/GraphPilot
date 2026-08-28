@@ -20,17 +20,17 @@ class GraphAnalystAgent:
     def analyze(self, request: AIAnalysisRequest) -> AIAnalysisResult:
         question = request.question.lower()
         
-        # Intent detection
-        if "affect" in question or "fail" in question or "depend" in question:
-            return self._handle_impact_analysis(question)
-        elif "incident" in question:
+        # Intent detection - order matters for specificity
+        if "incident" in question:
             return self._handle_incident_query(question)
-        elif "team" in question or "own" in question:
-            return self._handle_ownership_query(question)
         elif "database" in question:
             return self._handle_database_query(question)
-        elif "service" in question and "how many" in question:
+        elif "team" in question or "own" in question:
+            return self._handle_ownership_query(question)
+        elif "service" in question:
             return self._handle_service_query(question)
+        elif ("affect" in question or "fail" in question) and ("if" in question or "when" in question):
+            return self._handle_impact_analysis(question)
         else:
             return self._handle_general_query(question)
     
@@ -185,8 +185,23 @@ class GraphAnalystAgent:
     def _handle_service_query(self, question: str) -> AIAnalysisResult:
         services = self.service_repo.get_all_services()
         
-        # Handle "most dependencies" query
-        if "most" in question and ("depend" in question or "dependency" in question):
+        # Handle "show me all critical services" - check first for specificity
+        if "critical" in question:
+            critical_services = [s for s in services if s.get("criticality") == "high"]
+            
+            answer = f"There are {len(critical_services)} critical services: "
+            answer += ", ".join([s["name"] for s in critical_services[:10]])
+            if len(critical_services) > 10:
+                answer += f", and {len(critical_services) - 10} more."
+            
+            return AIAnalysisResult(
+                answer=answer,
+                evidence=critical_services,
+                query_type="service_query"
+            )
+        
+        # Handle "most dependencies" query - more specific pattern
+        if "most" in question and "depend" in question:
             # Get dependency counts for all services
             service_deps = []
             for service in services:
@@ -207,21 +222,6 @@ class GraphAnalystAgent:
             return AIAnalysisResult(
                 answer=answer,
                 evidence=top_services,
-                query_type="service_query"
-            )
-        
-        # Handle "show me all critical services"
-        if "critical" in question:
-            critical_services = [s for s in services if s.get("criticality") == "high"]
-            
-            answer = f"There are {len(critical_services)} critical services: "
-            answer += ", ".join([s["name"] for s in critical_services[:10]])
-            if len(critical_services) > 10:
-                answer += f", and {len(critical_services) - 10} more."
-            
-            return AIAnalysisResult(
-                answer=answer,
-                evidence=critical_services,
                 query_type="service_query"
             )
         
