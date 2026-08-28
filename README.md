@@ -301,12 +301,13 @@ npm test
 4. Configure output directory: `dist`
 5. Add environment variable: `VITE_API_URL=https://your-backend-domain.com`
 
-### Backend (Render/Railway)
-1. Connect your GitHub repository to Render/Railway
+### Backend (Render)
+1. Connect your GitHub repository to Render
 2. Set root directory to `backend`
 3. Configure build command: `pip install -r requirements.txt`
 4. Configure start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-5. Add environment variables:
+5. Python version: 3.11.9 (enforced by backend/runtime.txt)
+6. Add environment variables:
    - `COGNODB_URI` - Your CognoDB connection URI
    - `COGNODB_USERNAME` - Your CognoDB username
    - `COGNODB_PASSWORD` - Your CognoDB password
