@@ -385,6 +385,10 @@ Incident tracking with severity indicators, status badges, and affected service 
 ![AI Assistant](screenshots/assistant.png)
 Natural language interface for asking questions about the engineering graph with suggested questions.
 
+---
+
+**Note**: Screenshots should be captured from the hosted demo at https://graph-pilot.vercel.app and placed in the `screenshots/` directory with the filenames: `dashboard.png`, `explorer.png`, `impact.png`, `incidents.png`, `assistant.png`.
+
 ## 🎯 Usage
 
 ### Dashboard
