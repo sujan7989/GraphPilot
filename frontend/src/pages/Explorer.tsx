@@ -4,7 +4,7 @@ import ReactFlow, { Background, Controls, MiniMap, Node, Edge, useNodesState, us
 import 'reactflow/dist/style.css';
 import { servicesApi } from '../api/client';
 import { Service } from '../types/graph';
-import { Loader2, Search, Network } from 'lucide-react';
+import { Loader2, Search, Network, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 
 const Explorer = () => {
   const [selectedService, setSelectedService] = useState<string | null>(null);
@@ -38,6 +38,14 @@ const Explorer = () => {
         id: node.id,
         data: { label: node.label },
         position: { x: Math.random() * 400, y: Math.random() * 400 },
+        style: {
+          background: node.criticality === 'high' ? '#fee2e2' : '#e0f2fe',
+          border: '2px solid',
+          borderColor: node.criticality === 'high' ? '#ef4444' : '#0ea5e9',
+          borderRadius: '8px',
+          padding: '8px',
+          width: 150,
+        },
       }));
       const flowEdges: Edge[] = graphData.relationships.map((rel: any, index: number) => ({
         id: rel.id || `edge-${index}`,
@@ -45,6 +53,9 @@ const Explorer = () => {
         target: rel.target,
         label: rel.type,
         animated: true,
+        style: { stroke: '#0ea5e9', strokeWidth: 2 },
+        labelStyle: { fontSize: 10, fontWeight: 600 },
+        labelBgStyle: { fill: '#ffffff', color: '#171717' },
       }));
       setNodes(flowNodes);
       setEdges(flowEdges);
@@ -62,109 +73,227 @@ const Explorer = () => {
     s.id.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
 
+  const selectedServiceData = services?.find((s) => s.id === selectedService);
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Graph Explorer</h1>
-        <p className="text-gray-600 mt-1">Explore service dependencies and relationships</p>
+        <h1 className="text-2xl font-semibold text-[#171717]">Graph Explorer</h1>
+        <p className="text-sm text-[#525252] mt-1">Explore service dependencies and relationships</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Service List */}
-        <div className="card">
-          <div className="flex items-center space-x-2 mb-4">
-            <Search className="h-5 w-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search services..."
-              className="input flex-1"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2 max-h-96 overflow-y-auto">
-            {servicesLoading ? (
-              <div className="flex items-center justify-center h-32">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-              </div>
-            ) : filteredServices.length > 0 ? (
-              filteredServices.map((service) => (
-                <button
-                  key={service.id}
-                  onClick={() => setSelectedService(service.id)}
-                  className={`w-full text-left p-3 rounded-lg transition-colors ${
-                    selectedService === service.id
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'bg-gray-50 hover:bg-gray-100'
-                  }`}
-                >
-                  <div className="font-medium">{service.name}</div>
-                  <div className="text-sm text-gray-600">{service.id}</div>
-                </button>
-              ))
-            ) : (
-              <p className="text-gray-500 text-center py-8">No services found</p>
-            )}
+        <div className="lg:col-span-1">
+          <div className="card">
+            <div className="flex items-center space-x-2 mb-4">
+              <Search className="h-4 w-4 text-[#a3a3a3]" />
+              <input
+                type="text"
+                placeholder="Search services..."
+                className="input flex-1"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2 max-h-[600px] overflow-y-auto custom-scrollbar">
+              {servicesLoading ? (
+                <div className="flex items-center justify-center h-32">
+                  <Loader2 className="h-6 w-6 loading-spinner" />
+                </div>
+              ) : filteredServices.length > 0 ? (
+                filteredServices.map((service) => (
+                  <button
+                    key={service.id}
+                    onClick={() => setSelectedService(service.id)}
+                    className={`w-full text-left p-3 rounded-lg transition-all ${
+                      selectedService === service.id
+                        ? 'bg-[#e0f2fe] border border-[#0ea5e9]'
+                        : 'bg-[#fafafa] hover:bg-[#f5f5f5] border border-transparent'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-medium text-[#171717] text-sm">{service.name}</span>
+                      <div className={`w-2 h-2 rounded-full ${
+                        service.criticality === 'high' ? 'bg-[#ef4444]' :
+                        service.criticality === 'medium' ? 'bg-[#f59e0b]' :
+                        'bg-[#22c55e]'
+                      }`} />
+                    </div>
+                    <div className="text-xs text-[#525252]">{service.id}</div>
+                  </button>
+                ))
+              ) : (
+                <div className="empty-state">
+                  <Search className="empty-state-icon" />
+                  <h3 className="empty-state-title">No services found</h3>
+                  <p className="empty-state-description">Try a different search term</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Service Details */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-3 space-y-6">
           {selectedService ? (
             <>
-              <div className="flex space-x-2 mb-4">
+              {/* View Toggle */}
+              <div className="flex items-center space-x-2 bg-[#fafafa] p-1 rounded-lg w-fit">
                 <button
                   onClick={() => setShowGraph(false)}
-                  className={`px-4 py-2 rounded-lg ${!showGraph ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                    !showGraph ? 'bg-white text-[#171717] shadow-sm' : 'text-[#525252] hover:text-[#171717]'
+                  }`}
                 >
                   Details
                 </button>
                 <button
                   onClick={() => setShowGraph(true)}
-                  className={`px-4 py-2 rounded-lg ${showGraph ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                    showGraph ? 'bg-white text-[#171717] shadow-sm' : 'text-[#525252] hover:text-[#171717]'
+                  }`}
                 >
                   Graph View
                 </button>
               </div>
 
               {!showGraph ? (
-                <div className="card">
-                  <h2 className="text-xl font-semibold mb-4 flex items-center space-x-2">
-                    <Network className="h-6 w-6" />
-                    <span>Service Details</span>
-                  </h2>
-                  {services?.find((s) => s.id === selectedService) && (
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-sm font-medium text-gray-600">Name</label>
-                        <p className="text-gray-900">{services.find((s) => s.id === selectedService)?.name}</p>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-600">Description</label>
-                        <p className="text-gray-900">{services.find((s) => s.id === selectedService)?.description || 'No description'}</p>
-                      </div>
-                      <div className="flex space-x-4">
-                        <div>
-                          <label className="text-sm font-medium text-gray-600">Status</label>
-                          <p className="text-gray-900">{services.find((s) => s.id === selectedService)?.status}</p>
+                <>
+                  {/* Service Details Card */}
+                  <div className="card">
+                    <div className="flex items-start justify-between mb-6">
+                      <div className="flex items-center space-x-3">
+                        <div className="bg-[#e0f2fe] p-3 rounded-lg">
+                          <Network className="h-6 w-6 text-[#0ea5e9]" />
                         </div>
                         <div>
-                          <label className="text-sm font-medium text-gray-600">Criticality</label>
-                          <p className="text-gray-900">{services.find((s) => s.id === selectedService)?.criticality}</p>
+                          <h2 className="text-lg font-semibold text-[#171717]">{selectedServiceData?.name}</h2>
+                          <p className="text-sm text-[#525252]">{selectedServiceData?.id}</p>
                         </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className={`badge ${
+                          selectedServiceData?.status === 'active' ? 'badge-success' : 'badge-neutral'
+                        }`}>
+                          {selectedServiceData?.status}
+                        </span>
+                        <span className={`badge ${
+                          selectedServiceData?.criticality === 'high' ? 'badge-danger' :
+                          selectedServiceData?.criticality === 'medium' ? 'badge-warning' :
+                          'badge-neutral'
+                        }`}>
+                          {selectedServiceData?.criticality}
+                        </span>
                       </div>
                     </div>
-                  )}
-                </div>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-xs font-medium text-[#525252] uppercase tracking-wide">Description</label>
+                        <p className="text-sm text-[#171717] mt-1">{selectedServiceData?.description || 'No description available'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Dependencies and Dependents */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="card">
+                      <div className="section-header">
+                        <h3 className="section-title flex items-center space-x-2">
+                          <ArrowUpRight className="h-4 w-4" />
+                          <span>Dependencies</span>
+                        </h3>
+                        <span className="badge badge-neutral">{dependencies?.length || 0}</span>
+                      </div>
+                      {depsLoading ? (
+                        <div className="flex items-center justify-center h-32">
+                          <Loader2 className="h-6 w-6 loading-spinner" />
+                        </div>
+                      ) : dependencies && dependencies.length > 0 ? (
+                        <div className="space-y-2">
+                          {dependencies.map((dep) => (
+                            <div key={dep.id} className="flex items-center justify-between p-3 bg-[#fafafa] rounded-lg hover:bg-[#f5f5f5] transition-colors">
+                              <div>
+                                <div className="font-medium text-sm text-[#171717]">{dep.name}</div>
+                                <div className="text-xs text-[#525252]">{dep.id}</div>
+                              </div>
+                              <span className={`badge ${
+                                dep.status === 'active' ? 'badge-success' : 'badge-neutral'
+                              }`}>
+                                {dep.status}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="empty-state">
+                          <ArrowUpRight className="empty-state-icon" />
+                          <h3 className="empty-state-title">No dependencies</h3>
+                          <p className="empty-state-description">This service has no upstream dependencies</p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="card">
+                      <div className="section-header">
+                        <h3 className="section-title flex items-center space-x-2">
+                          <ArrowDownRight className="h-4 w-4" />
+                          <span>Dependents</span>
+                        </h3>
+                        <span className="badge badge-neutral">{dependents?.length || 0}</span>
+                      </div>
+                      {dependentsLoading ? (
+                        <div className="flex items-center justify-center h-32">
+                          <Loader2 className="h-6 w-6 loading-spinner" />
+                        </div>
+                      ) : dependents && dependents.length > 0 ? (
+                        <div className="space-y-2">
+                          {dependents.map((dep) => (
+                            <div key={dep.id} className="flex items-center justify-between p-3 bg-[#fafafa] rounded-lg hover:bg-[#f5f5f5] transition-colors">
+                              <div>
+                                <div className="font-medium text-sm text-[#171717]">{dep.name}</div>
+                                <div className="text-xs text-[#525252]">{dep.id}</div>
+                              </div>
+                              <span className={`badge ${
+                                dep.status === 'active' ? 'badge-success' : 'badge-neutral'
+                              }`}>
+                                {dep.status}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="empty-state">
+                          <ArrowDownRight className="empty-state-icon" />
+                          <h3 className="empty-state-title">No dependents</h3>
+                          <p className="empty-state-description">No services depend on this one</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
               ) : (
                 <div className="card h-[600px]">
-                  <h2 className="text-xl font-semibold mb-4 flex items-center space-x-2">
-                    <Network className="h-6 w-6" />
-                    <span>Dependency Graph</span>
-                  </h2>
+                  <div className="section-header">
+                    <h2 className="section-title flex items-center space-x-2">
+                      <Network className="h-5 w-5" />
+                      <span>Dependency Graph</span>
+                    </h2>
+                    <div className="flex items-center space-x-2 text-xs text-[#525252]">
+                      <div className="flex items-center space-x-1">
+                        <div className="w-3 h-3 rounded bg-[#fee2e2] border-2 border-[#ef4444]" />
+                        <span>High Criticality</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <div className="w-3 h-3 rounded bg-[#e0f2fe] border-2 border-[#0ea5e9]" />
+                        <span>Standard</span>
+                      </div>
+                    </div>
+                  </div>
                   {graphLoading ? (
-                    <div className="flex items-center justify-center h-96">
-                      <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                    <div className="flex items-center justify-center h-[500px]">
+                      <Loader2 className="h-8 w-8 loading-spinner" />
                     </div>
                   ) : (
                     <div className="h-[500px]">
@@ -176,62 +305,24 @@ const Explorer = () => {
                         onConnect={onConnect}
                         fitView
                       >
-                        <Background />
-                        <Controls />
-                        <MiniMap />
+                        <Background color="#e5e5e5" gap={16} />
+                        <Controls className="bg-white border border-[#e5e5e5]" />
+                        <MiniMap 
+                          className="bg-white border border-[#e5e5e5]"
+                          nodeColor={() => '#0ea5e9'}
+                        />
                       </ReactFlow>
                     </div>
                   )}
                 </div>
               )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="card">
-                  <h3 className="text-lg font-semibold mb-3">Dependencies</h3>
-                  {depsLoading ? (
-                    <div className="flex items-center justify-center h-32">
-                      <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-                    </div>
-                  ) : dependencies && dependencies.length > 0 ? (
-                    <div className="space-y-2">
-                      {dependencies.map((dep) => (
-                        <div key={dep.id} className="p-2 bg-gray-50 rounded">
-                          <div className="font-medium">{dep.name}</div>
-                          <div className="text-sm text-gray-600">{dep.status}</div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-500 text-center py-8">No dependencies</p>
-                  )}
-                </div>
-
-                <div className="card">
-                  <h3 className="text-lg font-semibold mb-3">Dependents</h3>
-                  {dependentsLoading ? (
-                    <div className="flex items-center justify-center h-32">
-                      <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-                    </div>
-                  ) : dependents && dependents.length > 0 ? (
-                    <div className="space-y-2">
-                      {dependents.map((dep) => (
-                        <div key={dep.id} className="p-2 bg-gray-50 rounded">
-                          <div className="font-medium">{dep.name}</div>
-                          <div className="text-sm text-gray-600">{dep.status}</div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-500 text-center py-8">No dependents</p>
-                  )}
-                </div>
-              </div>
             </>
           ) : (
             <div className="card flex items-center justify-center h-64">
-              <div className="text-center">
-                <Network className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">Select a service to view its dependencies</p>
+              <div className="empty-state">
+                <Network className="empty-state-icon" />
+                <h3 className="empty-state-title">Select a service</h3>
+                <p className="empty-state-description">Choose a service from the list to view its dependencies</p>
               </div>
             </div>
           )}

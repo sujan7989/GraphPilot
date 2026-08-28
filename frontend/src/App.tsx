@@ -9,9 +9,9 @@ import Assistant from './pages/Assistant'
 function App() {
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[#fafafa]">
         <Navbar />
-        <main className="container mx-auto px-4 py-8">
+        <main className="container mx-auto px-4 lg:px-6 py-8">
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/explorer" element={<Explorer />} />

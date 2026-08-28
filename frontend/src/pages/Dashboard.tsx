@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { graphApi, incidentsApi, servicesApi } from '../api/client';
 import { GraphStats, Service, Incident } from '../types/graph';
-import { Loader2, AlertCircle, Activity, Network, Database, AlertTriangle } from 'lucide-react';
+import { Loader2, AlertCircle, Activity, Network, Database, AlertTriangle, TrendingUp, CheckCircle2 } from 'lucide-react';
 
 const Dashboard = () => {
   const { data: stats, isLoading: statsLoading, error: statsError } = useQuery<GraphStats>({
@@ -19,110 +19,222 @@ const Dashboard = () => {
     queryFn: incidentsApi.getAll,
   });
 
+  const criticalServices = services?.filter(s => s.criticality === 'high' && s.status === 'active') || [];
+  const activeIncidents = incidents?.filter(i => i.status !== 'resolved') || [];
+
   if (statsError) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <p className="text-gray-600">Failed to load dashboard data. Please check your connection.</p>
-        </div>
+      <div className="error-state">
+        <AlertCircle className="error-state-icon" />
+        <h3 className="error-state-title">Unable to load dashboard</h3>
+        <p className="error-state-description">We couldn't retrieve your dashboard data right now.</p>
+        <button 
+          onClick={() => window.location.reload()}
+          className="btn btn-primary mt-4"
+        >
+          Retry
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600 mt-1">Overview of NovaCart engineering dependencies</p>
+        <h1 className="text-2xl font-semibold text-[#171717]">Dashboard</h1>
+        <p className="text-sm text-[#525252] mt-1">Overview of your engineering infrastructure</p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
+      {/* System Health Banner */}
+      <div className="bg-gradient-to-r from-[#e0f2fe] to-[#f0fdf4] border border-[#bae6fd] rounded-xl p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="bg-white p-2 rounded-lg">
+              <CheckCircle2 className="h-5 w-5 text-[#22c55e]" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-[#171717]">System Healthy</h3>
+              <p className="text-sm text-[#525252]">All services operating normally</p>
+            </div>
+          </div>
+          <div className="hidden sm:flex items-center space-x-6 text-sm">
+            <div className="text-center">
+              <p className="font-semibold text-[#171717]">{stats?.services || 0}</p>
+              <p className="text-[#525252]">Services</p>
+            </div>
+            <div className="text-center">
+              <p className="font-semibold text-[#171717]">{stats?.relationships || 0}</p>
+              <p className="text-[#525252]">Dependencies</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <KPICard
           title="Services"
           value={stats?.services || 0}
-          icon={<Network className="h-6 w-6" />}
+          icon={<Network className="h-5 w-5" />}
           loading={statsLoading}
-          color="blue"
+          trend="+2"
+          trendUp={true}
         />
-        <StatCard
+        <KPICard
           title="Teams"
           value={stats?.teams || 0}
-          icon={<Activity className="h-6 w-6" />}
+          icon={<Activity className="h-5 w-5" />}
           loading={statsLoading}
-          color="green"
+          trend="0"
+          trendUp={true}
         />
-        <StatCard
-          title="Incidents"
-          value={stats?.incidents || 0}
-          icon={<AlertTriangle className="h-6 w-6" />}
-          loading={statsLoading}
-          color="red"
+        <KPICard
+          title="Active Incidents"
+          value={activeIncidents.length}
+          icon={<AlertTriangle className="h-5 w-5" />}
+          loading={incidentsLoading}
+          trend={activeIncidents.length > 0 ? "+1" : "0"}
+          trendUp={false}
         />
-        <StatCard
+        <KPICard
           title="Databases"
           value={stats?.databases || 0}
-          icon={<Database className="h-6 w-6" />}
+          icon={<Database className="h-5 w-5" />}
           loading={statsLoading}
-          color="purple"
+          trend="0"
+          trendUp={true}
         />
       </div>
 
-      {/* Recent Incidents */}
-      <div className="card">
-        <h2 className="text-xl font-semibold mb-4">Recent Incidents</h2>
-        {incidentsLoading ? (
-          <div className="flex items-center justify-center h-32">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Incidents */}
+        <div className="card">
+          <div className="section-header">
+            <h2 className="section-title">Recent Incidents</h2>
+            <span className="badge badge-neutral">{incidents?.length || 0} total</span>
           </div>
-        ) : incidents && incidents.length > 0 ? (
-          <div className="space-y-3">
-            {incidents.slice(0, 5).map((incident) => (
-              <div
-                key={incident.id}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-              >
-                <div>
-                  <h3 className="font-medium text-gray-900">{incident.title}</h3>
-                  <p className="text-sm text-gray-600">{incident.severity} • {incident.status}</p>
+          {incidentsLoading ? (
+            <div className="flex items-center justify-center h-48">
+              <Loader2 className="h-8 w-8 loading-spinner" />
+            </div>
+          ) : incidents && incidents.length > 0 ? (
+            <div className="space-y-3">
+              {incidents.slice(0, 5).map((incident) => (
+                <div
+                  key={incident.id}
+                  className="flex items-start justify-between p-4 bg-[#fafafa] rounded-lg hover:bg-[#f5f5f5] transition-colors"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <h3 className="font-medium text-[#171717] truncate">{incident.title}</h3>
+                      <span className={`badge ${
+                        incident.severity === 'critical' ? 'badge-danger' :
+                        incident.severity === 'high' ? 'badge-warning' :
+                        incident.severity === 'medium' ? 'badge-warning' :
+                        'badge-neutral'
+                      }`}>
+                        {incident.severity}
+                      </span>
+                    </div>
+                    <p className="text-sm text-[#525252] line-clamp-2">{incident.description}</p>
+                    <div className="flex items-center space-x-3 mt-2 text-xs text-[#a3a3a3]">
+                      <span>{new Date(incident.created_at).toLocaleDateString()}</span>
+                      {incident.affected_services && incident.affected_services.length > 0 && (
+                        <span>{incident.affected_services.length} affected</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="ml-4">
+                    <span className={`badge ${
+                      incident.status === 'resolved' ? 'badge-success' :
+                      incident.status === 'investigating' ? 'badge-primary' :
+                      'badge-danger'
+                    }`}>
+                      {incident.status}
+                    </span>
+                  </div>
                 </div>
-                <span className="text-sm text-gray-500">
-                  {new Date(incident.created_at).toLocaleDateString()}
-                </span>
-              </div>
-            ))}
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state">
+              <AlertTriangle className="empty-state-icon" />
+              <h3 className="empty-state-title">No incidents recorded</h3>
+              <p className="empty-state-description">Your system is running smoothly</p>
+            </div>
+          )}
+        </div>
+
+        {/* Critical Services */}
+        <div className="card">
+          <div className="section-header">
+            <h2 className="section-title">Critical Services</h2>
+            <span className="badge badge-neutral">{criticalServices.length} high priority</span>
           </div>
-        ) : (
-          <p className="text-gray-500 text-center py-8">No incidents recorded</p>
-        )}
+          {servicesLoading ? (
+            <div className="flex items-center justify-center h-48">
+              <Loader2 className="h-8 w-8 loading-spinner" />
+            </div>
+          ) : criticalServices.length > 0 ? (
+            <div className="space-y-2">
+              {criticalServices.slice(0, 6).map((service) => (
+                <div
+                  key={service.id}
+                  className="flex items-center justify-between p-4 bg-[#fafafa] rounded-lg hover:bg-[#f5f5f5] transition-colors"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="w-2 h-2 rounded-full bg-[#22c55e]" />
+                    <div>
+                      <h3 className="font-medium text-[#171717]">{service.name}</h3>
+                      <p className="text-xs text-[#525252]">{service.id}</p>
+                    </div>
+                  </div>
+                  <span className="badge badge-success">Active</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state">
+              <Network className="empty-state-icon" />
+              <h3 className="empty-state-title">No critical services</h3>
+              <p className="empty-state-description">All services are running normally</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Services Overview */}
       <div className="card">
-        <h2 className="text-xl font-semibold mb-4">Services Overview</h2>
+        <div className="section-header">
+          <h2 className="section-title">All Services</h2>
+          <span className="badge badge-neutral">{services?.length || 0} total</span>
+        </div>
         {servicesLoading ? (
-          <div className="flex items-center justify-center h-32">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <div className="flex items-center justify-center h-48">
+            <Loader2 className="h-8 w-8 loading-spinner" />
           </div>
         ) : services && services.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {services.slice(0, 6).map((service) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {services.slice(0, 8).map((service) => (
               <div
                 key={service.id}
-                className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                className="p-4 bg-[#fafafa] rounded-lg hover:bg-[#f5f5f5] transition-colors cursor-pointer"
               >
-                <h3 className="font-medium text-gray-900">{service.name}</h3>
-                <div className="flex items-center space-x-2 mt-1">
-                  <span className={`text-xs px-2 py-1 rounded-full ${
-                    service.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-medium text-[#171717] truncate">{service.name}</h3>
+                  <div className="w-2 h-2 rounded-full bg-[#22c55e]" />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className={`badge ${
+                    service.status === 'active' ? 'badge-success' : 'badge-neutral'
                   }`}>
                     {service.status}
                   </span>
-                  <span className={`text-xs px-2 py-1 rounded-full ${
-                    service.criticality === 'high' ? 'bg-red-100 text-red-700' :
-                    service.criticality === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                    'bg-gray-100 text-gray-700'
+                  <span className={`badge ${
+                    service.criticality === 'high' ? 'badge-danger' :
+                    service.criticality === 'medium' ? 'badge-warning' :
+                    'badge-neutral'
                   }`}>
                     {service.criticality}
                   </span>
@@ -131,43 +243,52 @@ const Dashboard = () => {
             ))}
           </div>
         ) : (
-          <p className="text-gray-500 text-center py-8">No services available</p>
+          <div className="empty-state">
+            <Network className="empty-state-icon" />
+            <h3 className="empty-state-title">No services available</h3>
+            <p className="empty-state-description">Start by adding services to your infrastructure</p>
+          </div>
         )}
       </div>
     </div>
   );
 };
 
-interface StatCardProps {
+interface KPICardProps {
   title: string;
   value: number;
   icon: React.ReactNode;
   loading: boolean;
-  color: string;
+  trend: string;
+  trendUp: boolean;
 }
 
-const StatCard = ({ title, value, icon, loading, color }: StatCardProps) => {
-  const colorClasses = {
-    blue: 'bg-blue-50 text-blue-600',
-    green: 'bg-green-50 text-green-600',
-    red: 'bg-red-50 text-red-600',
-    purple: 'bg-purple-50 text-purple-600',
-  };
-
+const KPICard = ({ title, value, icon, loading, trend, trendUp }: KPICardProps) => {
   return (
-    <div className="card">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-gray-600 text-sm">{title}</p>
+    <div className="kpi-card">
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <p className="text-xs font-medium text-[#525252] uppercase tracking-wide">{title}</p>
           {loading ? (
-            <Loader2 className="h-8 w-8 animate-spin text-gray-400 mt-2" />
+            <Loader2 className="h-8 w-8 loading-spinner mt-3" />
           ) : (
-            <p className="text-3xl font-bold text-gray-900 mt-1">{value}</p>
+            <p className="text-3xl font-bold text-[#171717] mt-2">{value}</p>
           )}
         </div>
-        <div className={`p-3 rounded-lg ${colorClasses[color as keyof typeof colorClasses]}`}>
+        <div className="bg-[#e0f2fe] p-3 rounded-lg">
           {icon}
         </div>
+      </div>
+      <div className="flex items-center space-x-2 mt-4 pt-4 border-t border-[#e5e5e5]">
+        {trend !== "0" && (
+          <>
+            <TrendingUp className={`h-4 w-4 ${trendUp ? 'text-[#22c55e]' : 'text-[#ef4444]'}`} />
+            <span className={`text-xs font-medium ${trendUp ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
+              {trend}
+            </span>
+          </>
+        )}
+        <span className="text-xs text-[#a3a3a3]">from last period</span>
       </div>
     </div>
   );
