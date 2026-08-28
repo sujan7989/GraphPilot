@@ -43,6 +43,9 @@ class GraphAnalystAgent:
         if not service_match:
             # Try pattern with "what happens when"
             service_match = re.search(r'what happens when\s+(\w+(?:\s+\w+)?)\s+(?:fails|goes down|has an issue)', question)
+        if not service_match:
+            # Try pattern with "what services could be affected if"
+            service_match = re.search(r'(?:what|which|show)\s+\w+\s+(?:could|would|might|will)?\s*(?:be)?\s*affected\s+(?:if|when)\s+(\w+(?:\s+\w+)?)\s+(?:fails|goes down|has an issue)', question)
         
         if service_match:
             service_name = service_match.group(1)

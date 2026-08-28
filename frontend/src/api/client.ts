@@ -27,27 +27,27 @@ export const api = {
 };
 
 export const servicesApi = {
-  getAll: () => api.get<Service[]>('/api/services'),
-  getById: (id: string) => api.get<Service>(`/api/services/${id}`),
-  getDependencies: (id: string) => api.get<Service[]>(`/api/services/${id}/dependencies`),
-  getDependents: (id: string) => api.get<Service[]>(`/api/services/${id}/dependents`),
-  getGraph: (id: string, depth: number = 2) => api.get<any>(`/api/services/${id}/graph?depth=${depth}`),
+  getAll: () => api.get<Service[]>('/services'),
+  getById: (id: string) => api.get<Service>(`/services/${id}`),
+  getDependencies: (id: string) => api.get<Service[]>(`/services/${id}/dependencies`),
+  getDependents: (id: string) => api.get<Service[]>(`/services/${id}/dependents`),
+  getGraph: (id: string, depth: number = 2) => api.get<any>(`/services/${id}/graph?depth=${depth}`),
 };
 
 export const incidentsApi = {
-  getAll: () => api.get<Incident[]>('/api/incidents'),
-  getById: (id: string) => api.get<Incident>(`/api/incidents/${id}`),
-  getDependencies: (id: string) => api.get<any>(`/api/incidents/${id}/dependencies`),
+  getAll: () => api.get<Incident[]>('/incidents'),
+  getById: (id: string) => api.get<Incident>(`/incidents/${id}`),
+  getDependencies: (id: string) => api.get<any>(`/incidents/${id}/dependencies`),
 };
 
 export const graphApi = {
-  getStats: () => api.get<GraphStats>('/api/graph/stats'),
-  search: (q: string) => api.get<any[]>(`/api/graph/search?q=${encodeURIComponent(q)}`),
-  getNode: (id: string, type: string = 'Service') => api.get<any>(`/api/graph/node/${id}?node_type=${type}`),
-  analyzeImpact: (data: ImpactAnalysisRequest) => api.post<ImpactAnalysisResult>('/api/graph/impact-analysis', data),
-  getDatabaseImpact: (id: string, depth: number = 4) => api.get<any[]>(`/api/graph/database/${id}/impact?depth=${depth}`),
+  getStats: () => api.get<GraphStats>('/graph/stats'),
+  search: (q: string) => api.get<any[]>(`/graph/search?q=${encodeURIComponent(q)}`),
+  getNode: (id: string, type: string = 'Service') => api.get<any>(`/graph/node/${id}?node_type=${type}`),
+  analyzeImpact: (data: ImpactAnalysisRequest) => api.post<ImpactAnalysisResult>('/graph/impact-analysis', data),
+  getDatabaseImpact: (id: string, depth: number = 4) => api.get<any[]>(`/graph/database/${id}/impact?depth=${depth}`),
 };
 
 export const aiApi = {
-  analyze: (data: AIAnalysisRequest) => api.post<AIAnalysisResult>('/api/ai/analyze', data),
+  analyze: (data: AIAnalysisRequest) => api.post<AIAnalysisResult>('/ai/analyze', data),
 };
