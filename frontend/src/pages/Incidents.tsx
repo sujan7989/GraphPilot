@@ -100,7 +100,7 @@ const Incidents = () => {
       <div className="card">
         <div className="flex items-center space-x-2 mb-4">
           <Filter className="h-4 w-4 text-[#525252]" />
-          f<lterecI"text-sm font-medium text-[#171717]">Filters</h3>
+          <h3 className="text-sm font-medium text-[#171717]">Filters</h3>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>

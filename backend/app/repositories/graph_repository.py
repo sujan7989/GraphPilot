@@ -29,17 +29,17 @@ class GraphRepository:
             if not check_result.single():
                 raise ValueError(f"Service with id '{service_id}' not found")
         
-        # Query: find services that the target depends on (upstream)
-        # If target fails, services that depend on it are downstream
-        # Returning upstream dependencies for now due to query complexity
+        # Query: find services that depend on the target (downstream)
+        # If target fails, services that depend on it are affected
+        # Seed data: (source, target) means source depends on target
         query = """
         MATCH (target:Service {id: $service_id})
-        MATCH (target)-[r:DEPENDS_ON]->(dependency:Service)
+        MATCH (dependent:Service)-[r:DEPENDS_ON]->(target)
         RETURN DISTINCT 
-            dependency.id AS service_id,
-            dependency.name AS service_name,
-            dependency.status AS status,
-            dependency.criticality AS criticality,
+            dependent.id AS service_id,
+            dependent.name AS service_name,
+            dependent.status AS status,
+            dependent.criticality AS criticality,
             1 AS hops
         ORDER BY service_name
         """
@@ -53,10 +53,10 @@ class GraphRepository:
                     "service_name": record["service_name"],
                     "status": record["status"],
                     "criticality": record["criticality"],
-                    "hops": record["hops"],
-                    "path": record.get("path", [])
+                    "hops": record["hops"]
                 })
             
+            return {
                 "target_service": service_id,
                 "affected_services": affected_services,
                 "total_affected": len(affected_services),
